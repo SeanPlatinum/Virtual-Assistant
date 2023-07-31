@@ -14,14 +14,27 @@ class VoiceAssistant:
         self.listening_label = tk.Label(master=self.root, text="NOT LISTENING", font=('', 30))
         self.listening_label.pack()
         self.todoList = []
+        self.suggestions = ["Search","add to list","text"]
+        self.suggestion_index = 0
         self.r = sr.Recognizer()
         self.engine = pyttsx3.init()
         self.audio_text = ""
         self.listening_event = threading.Event()
-
+        self.suggestion = tk.Label(self.root, text="Suggested Commands", font=("Arial", 24))
+        self.suggestion.pack(side=tk.LEFT, fill=tk.Y)
+        self.suggestion_label = tk.Label(self.root, text=self.suggestions[self.suggestion_index])
+        self.suggestion_label.pack(side=tk.LEFT, fill=tk.Y)
+        self.rotate_suggestions()
         button = tk.Button(master=self.frame, text="Talk to me",command=self.start_listening).pack()
         self.root.mainloop()
 
+    def rotate_suggestions(self):
+        # Update the suggestion
+        self.suggestion_index = (self.suggestion_index + 1) % len(self.suggestions)
+        self.suggestion_label.config(text=self.suggestions[self.suggestion_index])
+
+        # Schedule the next update
+        self.root.after(3000, self.rotate_suggestions)  # 3000 milliseconds = 3 seconds
     def start_listening(self):
         if self.listening_event.is_set(): #true
             self.listening_event.clear()  # Stop any currently running listening_loop // make thread event false
