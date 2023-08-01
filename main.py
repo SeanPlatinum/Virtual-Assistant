@@ -3,37 +3,82 @@ import pyttsx3
 import tkinter as tk
 import threading
 import webbrowser
+from twilio.rest import Client
+import time
+class Settings:
+    def __init__(self, parent):
+        self.window = tk.Toplevel(parent)
+        self.window.title("Settings")
 
+        # Create labels and entry fields
+        self.sid_label = tk.Label(self.window, text="Twilio Account SID:")
+        self.sid_label.pack()
+        self.sid_entry = tk.Entry(self.window)
+        self.sid_entry.pack()
+
+        self.token_label = tk.Label(self.window, text="Twilio Auth Token:")
+        self.token_label.pack()
+        self.token_entry = tk.Entry(self.window, show="*")  # Hide the entered token
+        self.token_entry.pack()
+
+        self.phone_label = tk.Label(self.window, text="Twilio Phone Number:")
+        self.phone_label.pack()
+        self.phone_entry = tk.Entry(self.window)
+        self.phone_entry.pack()
+
+        # Add a save button
+        self.save_button = tk.Button(self.window, text="Save", command=self.save_settings)
+        self.save_button.pack()
+
+    def save_settings(self):
+        # Store the entered values
+        self.account_sid = self.sid_entry.get()
+        self.auth_token = self.token_entry.get()
+        self.phone_number = self.phone_entry.get()
+        # Here you could also add code to save these values to a file or database
+
+        # Close the settings window
+        self.window.destroy()
 class VoiceAssistant:
 
     def __init__(self):
         self.root = tk.Tk()
         self.root.geometry("500x500")
-        self.frame = tk.Frame(master=self.root, bg='#131112').pack()
-        self.label = tk.Label(master=self.frame, text= "Voice Recognition By Sean Diaz", bg='#F7F7FF').pack()
-        self.listening_label = tk.Label(master=self.root, text="NOT LISTENING", font=('', 30))
-        self.listening_label.pack()
-        self.todoList = []
-        self.suggestions = ["Search","add to list","text"]
+        self.command_frame = tk.Frame(self.root, bg='#1E2D2F')
+        self.command_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.suggestion_frame = tk.Frame(self.root, bg='#1E2D2F')
+        self.suggestion_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.label = tk.Label(master=self.command_frame, text="Voice Recognition By Sean Diaz", bg='#F7F7FF')
+        self.label.pack(pady=10)
+        self.listening_label = tk.Label(master=self.command_frame, text="NOT LISTENING", font=('', 30),bg='#1E2D2F')
+        self.listening_label.pack(pady=10)
+        self.button = tk.Button(master=self.command_frame, text="Talk to me", command=self.start_listening)
+        self.button.pack(pady=10)
+        self.suggestions = ["Search", "add to list", "text"]
         self.suggestion_index = 0
+        settings_button = tk.Button(self.root, text="Settings", command=self.open_settings)
+        settings_button.pack()
+        self.suggestion = tk.Label(self.suggestion_frame, text="Suggested Commands", font=("Arial", 24),bg='#1E2D2F')
+        self.suggestion.pack(pady=10)
+
+        self.suggestion_label = tk.Label(self.suggestion_frame, text=self.suggestions[self.suggestion_index],
+                                         font=("", 20))
+        self.suggestion_label.pack(pady=10)
+        self.rotate_suggestions()
+        self.todoList = []
         self.r = sr.Recognizer()
         self.engine = pyttsx3.init()
         self.audio_text = ""
         self.listening_event = threading.Event()
-        self.suggestion = tk.Label(self.root, text="Suggested Commands", font=("Arial", 24))
-        self.suggestion.pack(side=tk.LEFT, fill=tk.Y)
-        self.suggestion_label = tk.Label(self.root, text=self.suggestions[self.suggestion_index])
-        self.suggestion_label.pack(side=tk.LEFT, fill=tk.Y)
-        self.rotate_suggestions()
-        button = tk.Button(master=self.frame, text="Talk to me",command=self.start_listening).pack()
+
         self.root.mainloop()
 
+    def open_settings(self):
+        self.settings = Settings(self.root)
+
     def rotate_suggestions(self):
-        # Update the suggestion
         self.suggestion_index = (self.suggestion_index + 1) % len(self.suggestions)
         self.suggestion_label.config(text=self.suggestions[self.suggestion_index])
-
-        # Schedule the next update
         self.root.after(3000, self.rotate_suggestions)  # 3000 milliseconds = 3 seconds
     def start_listening(self):
         if self.listening_event.is_set(): #true
@@ -61,10 +106,14 @@ class VoiceAssistant:
                 self.response(self.audio_text)
             except sr.UnknownValueError as e:
                 error_message = str(e) if str(e) else "Unable to recognize speech"
-                self.engine.say("Im sorry I do not understand, please pick a command from the list")
+                self.engine.say("I'm sorry I do not understand, please pick a command from the list")
                 self.engine.runAndWait()
                 self.listening_label.config(text=error_message)
+            self.listening_event.clear()
 
+    def send_text(message, to):
+       # accountSID =
+        pass
     def response(self, audio):
         if "search" in audio:
             self.engine.say("heres what I found")
@@ -76,13 +125,23 @@ class VoiceAssistant:
             self.engine.say("making you a list now")
             self.engine.runAndWait()
             item = audio.split("add to list", 1)[1].strip()
-            self.todo_list.append(item)
+            self.todolist.append(item)
             self.engine.say("Added " + item + " to your to-do list")
             self.engine.runAndWait()
         elif "text message" in audio:
-            self.engine.say("What message would you like to send?")
+            self.engine.say("formulating your message now")
+            self.engine.runAndWait()
+            text = audio.split("text message",1)[1].strip()
+            self.engine.say("who would you like to send this message to?")
             self.engine.runAndWait()
             self.start_listening()
+            time.sleep(3)
+            recipientName = self.audio_text.strip()
+
+
+
+
+
 
     def main_loop(self):
         self.root.mainloop()
