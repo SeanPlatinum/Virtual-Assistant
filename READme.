@@ -1,0 +1,4 @@
+please log into your email and twilio account in the settings. 
+for email access to work, you need to setup an app password on google to allow the program to skip passed the 2 step verification 
+
+twilio needs a paid account to send a text message to a number that isnt already verified 
