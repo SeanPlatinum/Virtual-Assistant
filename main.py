@@ -7,6 +7,7 @@ from twilio.rest import Client
 import time
 class Settings:
     def __init__(self, parent):
+        self.parent = parent
         self.window = tk.Toplevel(parent)
         self.window.title("Settings")
 
@@ -31,14 +32,20 @@ class Settings:
         self.save_button.pack()
 
     def save_settings(self):
-        # Store the entered values
         self.account_sid = self.sid_entry.get()
         self.auth_token = self.token_entry.get()
         self.phone_number = self.phone_entry.get()
-        # Here you could also add code to save these values to a file or database
+        self.parent.twilio_account_sid = self.account_sid
+        self.parent.twilio_auth_token = self.auth_token
+        self.parent.twilio_phone_number = self.phone_number
+        print("Settings saved:")  # Debugging print statement
+        print(f"SID: {self.parent.twilio_account_sid}")
+        print(f"Token: {self.parent.twilio_auth_token}")
+        print(f"Phone: {self.parent.twilio_phone_number}")
 
         # Close the settings window
         self.window.destroy()
+
 class VoiceAssistant:
 
     def __init__(self):
@@ -65,16 +72,18 @@ class VoiceAssistant:
                                          font=("", 20))
         self.suggestion_label.pack(pady=10)
         self.rotate_suggestions()
-        self.todoList = []
+        self.todolist = []
         self.r = sr.Recognizer()
         self.engine = pyttsx3.init()
         self.audio_text = ""
         self.listening_event = threading.Event()
-
+        self.twilio_account_sid = 'ACce3fb82c81b76acdb69c37bb5bcdf429'
+        self.twilio_auth_token = 'b565f8c6209a9cec48dc4d37c4dbab22'
+        self.twilio_phone_number = '+18552741255'
         self.root.mainloop()
 
     def open_settings(self):
-        self.settings = Settings(self.root)
+        self.settings = Settings(self)
 
     def rotate_suggestions(self):
         self.suggestion_index = (self.suggestion_index + 1) % len(self.suggestions)
@@ -94,6 +103,16 @@ class VoiceAssistant:
             self.listening_label.config(text="LISTENING")
             self.root.update()
             threading.Thread(target=self.listening_loop).start()
+    def quick_get_audio(self):
+        with sr.Microphone() as source:
+            audio = self.r.listen(source)
+        try:
+            return self.r.recognize_google(audio)
+        except sr.UnknownValueError as e:
+            error_message = str(e) if str(e) else "Unable to recognize speech"
+            self.engine.say("I'm sorry I do not understand, please try again from the beginning")
+            self.engine.runAndWait()
+            self.listening_label.config(text=error_message)
 
     def listening_loop(self):
         while self.listening_event.is_set():
@@ -111,9 +130,14 @@ class VoiceAssistant:
                 self.listening_label.config(text=error_message)
             self.listening_event.clear()
 
-    def send_text(message, to):
-       # accountSID =
-        pass
+    def send_text(self, message, to):
+        client = Client(self.twilio_account_sid, self.twilio_auth_token)
+        message = client.messages.create(
+            body=message,
+            from_=self.twilio_phone_number,
+            to=to
+        )
+        return message.sid
     def response(self, audio):
         if "search" in audio:
             self.engine.say("heres what I found")
@@ -134,12 +158,11 @@ class VoiceAssistant:
             text = audio.split("text message",1)[1].strip()
             self.engine.say("who would you like to send this message to?")
             self.engine.runAndWait()
-            self.start_listening()
+            recipient = self.quick_get_audio()
+            self.send_text(text, recipient)
+            self.engine.say("message sent")
+            self.engine.runAndWait()
             time.sleep(3)
-            recipientName = self.audio_text.strip()
-
-
-
 
 
 
